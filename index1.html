@@ -1,0 +1,4842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENFLOW - Advanced ETL Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #6366f1;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --success-bg: #ecfdf5;
+            --error-bg: #fef2f2;
+            --warning-bg: #fffbeb;
+            --info-bg: #eff6ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: rgba(124, 75, 248, 0.35);
+            height: 100vh;
+            overflow: hidden;
+            color: var(--dark);
+        }
+
+        /* Header styles */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            background-color: black;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: 0.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.9;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .user-profile {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .user-profile:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-success {
+            background-color: var(--secondary);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+        }
+
+        .status-error {
+            background-color: var(--danger);
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+        }
+
+        .status-processing {
+            background-color: var(--warning);
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-idle {
+            background-color: var(--gray);
+            box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.3);
+        }
+
+        /* Tabs styles */
+        .tabs-container {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 5;
+        }
+
+        .tabs {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab {
+            padding: 14px 24px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+            white-space: nowrap;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab i {
+            font-size: 16px;
+        }
+
+        .tab.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: white;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .tab:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .tab-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        /* Features container */
+        .features-container {
+            display: none;
+            padding: 12px 16px;
+            background-color: white;
+            border-bottom: 1px solid var(--gray-light);
+            overflow-x: auto;
+            white-space: nowrap;
+            height: 100px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-light) white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .features-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .features-container::-webkit-scrollbar-track {
+            background: white;
+        }
+
+        .features-container::-webkit-scrollbar-thumb {
+            background-color: var(--primary-light);
+            border-radius: 3px;
+        }
+
+        .features-container.active {
+            display: block;
+        }
+
+        .features-header {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray);
+            margin-bottom: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .features-header i {
+            font-size: 14px;
+        }
+
+        .features-scroller {
+            display: flex;
+            gap: 8px;
+        }
+
+        .source {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            min-width: 90px;
+            text-align: center;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            height: 80px;
+            transition: all 0.2s ease;
+            border: 1px solid var(--gray-light);
+            position: relative;
+        }
+
+        .source:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-light);
+            z-index: 2;
+        }
+
+        .source.draggable {
+            cursor: grab;
+        }
+
+        .source.draggable:active {
+            cursor: grabbing;
+        }
+
+        .source-icon {
+            width: 28px;
+            height: 28px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+            border-radius: 6px;
+            padding: 5px;
+        }
+
+        .source-name {
+            font-size: 12px;
+            white-space: normal;
+            word-break: break-word;
+            max-width: 80px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .source-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: var(--primary);
+            color: white;
+            font-size: 10px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+        }
+
+        /* Main content area */
+        .dashboard-area {
+            position: absolute;
+            top: 156px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 240px;
+            background-color: white;
+            border-right: 1px solid var(--gray-light);
+            padding: 16px 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray);
+            padding: 0 16px 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            color: var(--dark);
+        }
+
+        .sidebar-item:hover {
+            background-color: var(--gray-light);
+        }
+
+        .sidebar-item.active {
+            background-color:rgb(145, 240, 36);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .sidebar-item i {
+            margin-right: 10px;
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-item-badge {
+            margin-left: auto;
+            background-color: var(--primary-light);
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-header {
+            padding: 16px 20px;
+            background-color: white;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header {
+            font-size: 18px;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header i {
+            font-size: 20px;
+        }
+
+        .content-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            height: 36px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button-secondary {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--gray-light);
+            box-shadow: none;
+        }
+
+        .button-secondary:hover {
+            background-color:rgb(5, 82, 159);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .button-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+        }
+
+        .button-success {
+            background: linear-gradient(135deg, var(--secondary) 0%, #059669 100%);
+        }
+
+        .button-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+        }
+
+        .button-sm {
+            padding: 6px 12px;
+            height: 32px;
+            font-size: 13px;
+        }
+
+        .content-body {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Workflow canvas */
+        .workflow-container {
+            display: flex;
+            flex-grow: 1;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-light);
+            overflow: hidden;
+        }
+
+        .workflow-sidebar {
+            width: 48px;
+            background-color: #f8fafc;
+            border-right: 1px solid var(--gray-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 16px;
+            gap: 16px;
+        }
+
+        .workflow-tool {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--gray);
+            position: relative;
+        }
+
+        .workflow-tool:hover {
+            background-color: #e0e7ff;
+            color: var(--primary);
+        }
+
+        .workflow-tool.active {
+            background-color: #e0e7ff;
+            color: var(--primary);
+        }
+
+        .workflow-tool i {
+            font-size: 18px;
+        }
+
+        .workflow-tool-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: var(--primary);
+            color: white;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #f8fafc;
+        }
+
+        .workflow-canvas {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background-color: white;
+            background-image: linear-gradient(to right, #f1f5f9 1px, transparent 1px),
+                              linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .drop-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--gray);
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .drop-area.active-drop {
+            background-color: #f8fafc;
+            border: 2px dashed var(--primary-light);
+        }
+
+        .drop-hint {
+            text-align: center;
+            max-width: 300px;
+            padding: 20px;
+        }
+
+        .drop-hint i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: var(--primary-light);
+        }
+
+        .drop-hint h3 {
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .drop-hint p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .items-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .items-container > * {
+            pointer-events: auto;
+        }
+
+        /* Dropped item styles */
+        .dropped-item {
+            background-color: white;
+            border: 1px solid var(--gray-light);
+            border-radius: 8px;
+            padding: 12px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            cursor: move;
+            z-index: 10;
+            width: 120px;
+            min-height: 100px;
+            transition: all 0.2s ease;
+        }
+
+        .dropped-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .dropped-item.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
+        }
+
+        .dropped-item .source-icon {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 8px;
+        }
+
+        .dropped-item .source-name {
+            font-size: 13px;
+            margin-top: 4px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .dropped-item-actions {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .dropped-item:hover .dropped-item-actions {
+            opacity: 1;
+        }
+
+        .item-action {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--gray);
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-light);
+        }
+
+        .item-action:hover {
+            background-color: #f8fafc;
+            color: var(--primary);
+        }
+
+        .item-action-danger:hover {
+            color: var(--danger);
+        }
+
+        /* Connection lines */
+        .connection-line {
+            position: absolute;
+            background-color: var(--primary-light);
+            height: 2px;
+            transform-origin: left center;
+            z-index: 5;
+        }
+
+        .connection-arrow {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-top: 2px solid var(--primary-light);
+            border-right: 2px solid var(--primary-light);
+            transform: rotate(45deg);
+            z-index: 6;
+        }
+
+        /* Panel styles */
+        .panel {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-light);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title i {
+            font-size: 16px;
+            color: var(--gray);
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        /* Preview table */
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .preview-table th {
+            background-color: #f8fafc;
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid var(--gray-light);
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .preview-table td {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-light);
+            color: var(--dark);
+        }
+
+        .preview-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .no-data {
+            padding: 16px;
+            color: var(--gray);
+            text-align: center;
+            font-size: 14px;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border: 1px dashed var(--gray-light);
+        }
+
+        /* Execution results */
+        .execution-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-light);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+
+        .stat-icon-success {
+            background-color: var(--secondary);
+        }
+
+        .stat-icon-warning {
+            background-color: var(--warning);
+        }
+
+        .stat-icon-error {
+            background-color: var(--danger);
+        }
+
+        .stat-info {
+            flex-grow: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Logs */
+        .log-entry {
+            display: flex;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--gray-light);
+            font-size: 13px;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: var(--gray);
+            min-width: 80px;
+        }
+
+        .log-message {
+            flex-grow: 1;
+        }
+
+        .log-level {
+            font-weight: 500;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .log-level-info {
+            color: var(--info);
+        }
+
+        .log-level-warning {
+            color: var(--warning);
+        }
+
+        .log-level-error {
+            color: var(--danger);
+        }
+
+        .log-level-success {
+            color: var(--secondary);
+        }
+
+        /* Property panel */
+        .property-panel {
+            width: 300px;
+            background-color: white;
+            border-left: 1px solid var(--gray-light);
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: none;
+        }
+
+        .property-panel.active {
+            display: block;
+        }
+
+        .property-group {
+            margin-bottom: 16px;
+        }
+
+        .property-group-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark);
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .property-item {
+            padding: 12px 16px;
+        }
+
+        .property-label {
+            font-size: 13px;
+            color: var(--gray);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .property-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-light);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .property-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background-color: var(--dark);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.2s;
+            max-width: 200px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--dark) transparent transparent transparent;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            max-width: 300px;
+            display: flex;
+            gap: 12px;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: white;
+            font-size: 12px;
+        }
+
+        .notification-icon-success {
+            background-color: var(--secondary);
+        }
+
+        .notification-icon-error {
+            background-color: var(--danger);
+        }
+
+        .notification-icon-warning {
+            background-color: var(--warning);
+        }
+
+        .notification-icon-info {
+            background-color: var(--info);
+        }
+
+        .notification-content {
+            flex-grow: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--dark);
+        }
+
+        .notification-message {
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        .notification-close {
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 14px;
+            align-self: flex-start;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .real-time-update {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 200px;
+            }
+            
+            .property-panel {
+                width: 250px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .property-panel {
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-title {
+                display: none;
+            }
+            
+            .execution-stats {
+                flex-direction: column;
+            }
+        }
+        .data-display-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+
+        .data-display-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-display-container th {
+            background-color: #f8fafc;
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid var(--gray-light);
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .data-display-container td {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-light);
+            color: var(--dark);
+        }
+
+        .data-display-container tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .data-preview-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+        }
+
+        .data-preview-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .data-preview-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .chatbot-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #007bff; /* Primary blue */
+            color: white;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: background-color 0.3s, transform 0.3s;
+          }
+        
+          .chatbot-button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+            cursor: pointer;
+          }
+        
+          .chatbot-button i {
+            font-size: 24px;
+          }
+          /* Chatbot styling */
+:root {
+    --primary-color: #4f46e5;
+    --secondary-color: #e2e8f0;
+    --text-light: #ffffff;
+    --text-dark: #1e293b;
+    --bg-color: #ffffff;
+    --border-radius: 16px;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+/* Toggle button */
+#chatbot-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    border: none;
+    transition: var(--transition);
+    z-index: 999;
+}
+
+#chatbot-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+#chatbot-toggle i {
+    font-size: 24px;
+}
+
+/* Chatbot container */
+#chatbot-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    border-radius: var(--border-radius);
+    background-color: var(--bg-color);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: none;
+    z-index: 1000;
+    transition: var(--transition);
+}
+
+/* Animation classes */
+.slide-in {
+    animation: slideIn 0.3s forwards;
+}
+
+.slide-out {
+    animation: slideOut 0.3s forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(20px); opacity: 0; }
+}
+
+.minimized {
+    height: 160px !important;
+    transition: height 0.3s ease;
+}
+
+.minimized #chat-messages {
+    height: 40px !important;
+    transition: height 0.3s ease;
+}
+
+.maximized {
+    height: 450px !important;
+    transition: height 0.3s ease;
+}
+
+.maximized #chat-messages {
+    height: 330px !important;
+    transition: height 0.3s ease;
+}
+
+/* Chatbot header */
+.chatbot-header {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+}
+
+.chatbot-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.chatbot-title i {
+    margin-right: 8px;
+}
+
+.chatbot-controls button {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 16px;
+    margin-left: 10px;
+    padding: 0;
+    transition: var(--transition);
+}
+
+.chatbot-controls button:hover {
+    opacity: 0.8;
+}
+
+/* Chat messages */
+#chat-messages {
+    height: 330px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #f8fafc;
+    transition: height 0.3s ease;
+}
+
+/* Message containers */
+.message-container {
+    display: flex;
+    margin-bottom: 10px;
+    animation: fadeIn 0.3s forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-message {
+    flex-direction: row-reverse;
+}
+
+.bot-message {
+    flex-direction: row;
+}
+
+/* Avatars */
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin: 0 8px;
+}
+
+.user-message .avatar {
+    background-color: #e0e7ff;
+    color: var(--primary-color);
+}
+
+.bot-message .avatar {
+    background-color: #dbeafe;
+    color: #3b82f6;
+}
+
+/* Message bubbles */
+.message-bubble {
+    padding: 10px 14px;
+    border-radius: 18px;
+    max-width: 70%;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.user-message .message-bubble {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    border-top-right-radius: 4px;
+}
+
+.bot-message .message-bubble {
+    background-color: var(--secondary-color);
+    color: var(--text-dark);
+    border-top-left-radius: 4px;
+}
+
+/* Code suggestions */
+.code-suggestion {
+    display: block;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin: 4px 0;
+    font-family: monospace;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.code-suggestion:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Typing indicator */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+}
+
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background: #606060;
+    display: block;
+    border-radius: 50%;
+    opacity: 0.4;
+    margin: 0 2px;
+    animation: typing 1s infinite;
+}
+
+.typing-indicator span:nth-child(1) {
+    animation-delay: 0s;
+}
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.3s;
+}
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.6s;
+}
+
+@keyframes typing {
+    0% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0.4; transform: scale(1); }
+}
+
+/* Input area */
+.chat-input-container {
+    display: flex;
+    padding: 10px 15px;
+    background-color: var(--bg-color);
+    border-top: 1px solid #e2e8f0;
+}
+
+#chat-input {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 10px 16px;
+    outline: none;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+#chat-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+#send-chat {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    margin-left: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+#send-chat:hover {
+    transform: scale(1.05);
+    background-color: #4338ca;
+}
+
+#send-chat:disabled {
+    background-color: #cbd5e1;
+    cursor: not-allowed;
+}
+
+/* Scrollbar styling */
+#chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+    #chatbot-container {
+        width: calc(100% - 40px);
+        bottom: 80px;
+    }
+}
+#chatbot-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 18px rgba(79,70,229,0.5);
+}
+
+#send-chat:hover {
+    background: #4338ca;
+    transform: scale(1.05);
+}
+
+#chat-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+}
+
+#minimize-chat:hover, #close-chatbot:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+/* Message styling will be added by JavaScript */
+/* Define animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+.dark {
+    filter: invert(1) hue-rotate(180deg);
+  }
+  .dark img, .dark video {
+    filter: invert(1) hue-rotate(180deg) !important;
+  }
+  /* Data Dashboard Styles */
+        .data-dashboard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .data-dashboard.active {
+            display: block;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dashboard-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray);
+            transition: color 0.2s;
+        }
+
+        .dashboard-close:hover {
+            color: var(--danger);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-light);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: var(--gray);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .stat-description {
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-light);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .data-description {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-light);
+        }
+
+        .data-description h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-description p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .data-highlights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .highlight-card {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .highlight-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+
+        .highlight-content {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .data-table {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--light);
+        }
+
+        .dashboard-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .data-highlights {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-title {
+                font-size: 20px;
+            }
+        }
+  
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .dashboard-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-light);
+            overflow: hidden;
+        }
+        
+        .dashboard-card.full-width-card {
+            grid-column: 1 / -1;
+        }
+        
+        .card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-light);
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-header i {
+            color: var(--primary);
+        }
+        
+        .card-content {
+            padding: 16px;
+        }
+        
+        .overview-card {
+            border-top: 3px solid var(--primary);
+        }
+        
+        .quality-card {
+            border-top: 3px solid var(--secondary);
+        }
+        
+        .types-card {
+            border-top: 3px solid var(--warning);
+        }
+        
+        .numeric-card {
+            border-top: 3px solid var(--info);
+        }
+        
+        .chart-card {
+            border-top: 3px solid var(--primary-light);
+        }
+        
+        /* Stats items */
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .bad-stat {
+            color: var(--danger) !important;
+        }
+        
+        .good-stat {
+            color: var(--secondary) !important;
+        }
+        
+        /* Data description */
+        .data-description {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--dark);
+        }
+        
+        /* Chart containers */
+        .chart-container {
+            width: 100%;
+            height: 100%;
+            min-height: 200px;
+        }
+          
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.7.0/build/Chart.BoxPlot.min.js"></script>
+ <!-- Transformation Modal -->
+<div id="transformModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+    <div style="background-color: white; border-radius: 8px; padding: 20px; width: 400px; max-width: 90%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 id="transformModalTitle">Transform Data</h3>
+            <button id="closeTransformModal" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <div id="transformModalContent">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <button id="cancelTransform" class="button button-secondary">Cancel</button>
+            <button id="applyTransform" class="button button-success">Apply</button>
+        </div>
+    </div>
+</div>
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">G</div>
+            <div class="logo-text">GENFLOW</div>
+        </div>
+        <div class="header-title">ETL Pipeline Designer</div>
+        <div class="header-actions">
+            <div class="status-indicator">
+                <div class="status-dot status-success"></div>
+                <span>Connected</span>
+            </div>
+            <div class="user-profile">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+    </div>
+    <button onclick="document.documentElement.classList.toggle('dark')" style='position:fixed;top:10px;right:10px;z-index:999;background:#111;color:#fff;padding:8px 12px;border:none;border-radius:6px;cursor:pointer'>🌙 Dark</button>
+
+
+
+    <div class="tabs-container">
+        <div class="tabs">
+            <div class="tab" onclick="setActiveTab(this, 'extract')">
+                <i class="fas fa-database"></i>
+                Extract
+                <span class="tab-badge">20</span>
+            </div>
+            <div class="tab active" onclick="setActiveTab(this, 'transform')">
+                <i class="fas fa-cogs"></i>
+                Transform
+                <span class="tab-badge">40</span>
+            </div>
+            <div class="tab" onclick="setActiveTab(this, 'load')">
+                <i class="fas fa-upload"></i>
+                Load
+                <span class="tab-badge">20</span>
+            </div>
+            <div class="tab" onclick="setActiveTab(this, 'machine learning')">
+                <i class="fas fa-chart-line"></i>
+                machine learning
+            </div>
+            <div class="features-container" id="mlFeatures">
+                <div class="features-header">
+                    <i class="fas fa-chart-line"></i>
+                    Machine Learning Tools
+                </div>
+                <div class="features-scroller">
+                    <div class="source draggable" draggable="true" data-type="assisted-modeling" title="Assisted Modeling">
+                        <div class="source-icon" style="background-color: #8b5cf6;">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="source-name">Assisted Modeling</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="build-features" title="Build Features">
+                        <div class="source-icon" style="background-color: #3b82f6;">
+                            <i class="fas fa-cubes"></i>
+                        </div>
+                        <div class="source-name">Build Features</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="classification" title="Classification">
+                        <div class="source-icon" style="background-color: #10b981;">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <div class="source-name">Classification</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="data-health" title="Data Health">
+                        <div class="source-icon" style="background-color: #ef4444;">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div class="source-name">Data Health</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="feature-types" title="Feature Types">
+                        <div class="source-icon" style="background-color: #f59e0b;">
+                            <i class="fas fa-shapes"></i>
+                        </div>
+                        <div class="source-name">Feature Types</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="fit" title="Fit Model">
+                        <div class="source-icon" style="background-color: #6366f1;">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <div class="source-name">Fit</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="predict" title="Make Predictions">
+                        <div class="source-icon" style="background-color: #14b8a6;">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div class="source-name">Predict</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="regression" title="Regression">
+                        <div class="source-icon" style="background-color: #84cc16;">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="source-name">Regression</div>
+                    </div>
+                    <div class="source draggable" draggable="true" data-type="transformation" title="Data Transformation">
+                        <div class="source-icon" style="background-color: #06b6d4;">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="source-name">Transformation</div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab" onclick="setActiveTab(this, 'schedule')">
+                <i class="fas fa-calendar-alt"></i>
+                Schedule
+            </div>
+        </div>
+    </div>
+
+    <div class="features-container" id="extractSources">
+        <div class="features-header">
+            <i class="fas fa-database"></i>
+            Data Sources
+        </div>
+        <div class="features-scroller">
+            <div class="source draggable" draggable="true" data-type="excel" title="Extract data from Excel files" onclick="handleExtractSourceClick('excel')">
+                <div class="source-icon" style="background-color: #217346;">
+                    <i class="fas fa-file-excel"></i>
+                </div>
+                <div class="source-name">Excel</div>
+                <div class="source-badge">New</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="csv" title="Extract data from CSV files" onclick="handleExtractSourceClick('csv')">
+                <div class="source-icon" style="background-color: #00a651;">
+                    <i class="fas fa-file-csv"></i>
+                </div>
+                <div class="source-name">CSV</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="json" title="Extract data from JSON files" onclick="handleExtractSourceClick('json')">
+                <div class="source-icon" style="background-color: #795548;">
+                    <i class="fas fa-file-code"></i>
+                </div>
+                <div class="source-name">JSON</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="sqlserver" title="Extract from SQL Server" onclick="handleExtractSourceClick('sqlserver')">
+                <div class="source-icon" style="background-color: #336791;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">SQL Server</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="mysql" title="Extract from MySQL" onclick="handleExtractSourceClick('mysql')">
+                <div class="source-icon" style="background-color: #00758f;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">MySQL</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="postgres" title="Extract from PostgreSQL" onclick="handleExtractSourceClick('postgres')">
+                <div class="source-icon" style="background-color: #336791;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">PostgreSQL</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="oracle" title="Extract from Oracle" onclick="handleExtractSourceClick('oracle')">
+                <div class="source-icon" style="background-color: #d32f2f;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">Oracle</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="mongodb" title="Extract from MongoDB" onclick="handleExtractSourceClick('mongodb')">
+                <div class="source-icon" style="background-color: #4db33d;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">MongoDB</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="api" title="Extract from API" onclick="handleExtractSourceClick('api')">
+                <div class="source-icon" style="background-color: #8e24aa;">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div class="source-name">API</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="web" title="Web Scraping" onclick="handleExtractSourceClick('web')">
+                <div class="source-icon" style="background-color: #00acc1;">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div class="source-name">Web Scrape</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="sharepoint" title="Extract from SharePoint" onclick="handleExtractSourceClick('sharepoint')">
+                <div class="source-icon" style="background-color: #0078d4;">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <div class="source-name">SharePoint</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="sftp" title="SFTP File Import" onclick="handleExtractSourceClick('sftp')">
+                <div class="source-icon" style="background-color: #795548;">
+                    <i class="fas fa-file-import"></i>
+                </div>
+                <div class="source-name">SFTP</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="blob" title="Azure Blob Storage" onclick="handleExtractSourceClick('blob')">
+                <div class="source-icon" style="background-color: #0089d6;">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <div class="source-name">Blob Storage</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="s3" title="Amazon S3" onclick="handleExtractSourceClick('s3')">
+                <div class="source-icon" style="background-color: #ff9900;">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <div class="source-name">Amazon S3</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="google" title="Google Drive" onclick="handleExtractSourceClick('google')">
+                <div class="source-icon" style="background-color: #34a853;">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <div class="source-name">Google Drive</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-container active" id="transformFeatures">
+        <div class="features-header">
+            <i class="fas fa-cogs"></i>
+            Transformations
+        </div>
+        <div class="features-scroller">
+            <div class="source draggable" draggable="true" data-type="filter" title="Filter rows by condition">
+                <div class="source-icon" style="background-color: #3b82f6;">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <div class="source-name">Filter Rows</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="sort" title="Sort data by columns">
+                <div class="source-icon" style="background-color: #8b5cf6;">
+                    <i class="fas fa-sort-amount-down"></i>
+                </div>
+                <div class="source-name">Sort Data</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="aggregate" title="Aggregate data (sum, avg, etc)">
+                <div class="source-icon" style="background-color: #f59e0b;">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <div class="source-name">Aggregate</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="join" title="Join multiple datasets">
+                <div class="source-icon" style="background-color: #6366f1;">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="source-name">Join Tables</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="pivot" title="Pivot data">
+                <div class="source-icon" style="background-color: #14b8a6;">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="source-name">Pivot Table</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="drop" title="Drop columns from dataset">
+                <div class="source-icon" style="background-color: #ef4444;">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <div class="source-name">Drop Column</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="rename" title="Rename columns">
+                <div class="source-icon" style="background-color: #8b5cf6;">
+                    <i class="fas fa-tag"></i>
+                </div>
+                <div class="source-name">Rename Column</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="dedupe" title="Remove duplicates">
+                <div class="source-icon" style="background-color: #ef4444;">
+                    <i class="fas fa-clone"></i>
+                </div>
+                <div class="source-name">Remove Duplicates</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="fillna" title="Fill missing values">
+                <div class="source-icon" style="background-color: #84cc16;">
+                    <i class="fas fa-fill-drip"></i>
+                </div>
+                <div class="source-name">Fill NA</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="type" title="Change data types">
+                <div class="source-icon" style="background-color: #06b6d4;">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="source-name">Type Conversion</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="parse" title="Parse text data">
+                <div class="source-icon" style="background-color: #14b8a6;">
+                    <i class="fas fa-paragraph"></i>
+                </div>
+                <div class="source-name">Parse Text</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="formula" title="Custom formulas">
+                <div class="source-icon" style="background-color: #6366f1;">
+                    <i class="fas fa-square-root-alt"></i>
+                </div>
+                <div class="source-name">Formula</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="conditional" title="Conditional logic">
+                <div class="source-icon" style="background-color: #6366f1;">
+                    <i class="fas fa-code-branch"></i>
+                </div>
+                <div class="source-name">Conditional</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="validation" title="Data validation">
+                <div class="source-icon" style="background-color: #10b981;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="source-name">Validation</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="script" title="Custom scripts">
+                <div class="source-icon" style="background-color: #8b5cf6;">
+                    <i class="fas fa-code"></i>
+                </div>
+                <div class="source-name">Script</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-container" id="databaseOptions">
+        <div class="features-header">
+            <i class="fas fa-upload"></i>
+            Destinations
+        </div>
+        <div class="features-scroller">
+            <div class="source draggable" draggable="true" data-type="sqlserver" title="Load to SQL Server">
+                <div class="source-icon" style="background-color: #336791;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">SQL Server</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="mysql" title="Load to MySQL">
+                <div class="source-icon" style="background-color: #00758f;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">MySQL</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="postgres" title="Load to PostgreSQL">
+                <div class="source-icon" style="background-color: #336791;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">PostgreSQL</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="mongodb" title="Load to MongoDB">
+                <div class="source-icon" style="background-color: #4db33d;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="source-name">MongoDB</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="excel" title="Export to Excel">
+                <div class="source-icon" style="background-color: #217346;">
+                    <i class="fas fa-file-excel"></i>
+                </div>
+                <div class="source-name">Excel</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="csv" title="Export to CSV">
+                <div class="source-icon" style="background-color: #00a651;">
+                    <i class="fas fa-file-csv"></i>
+                </div>
+                <div class="source-name">CSV</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="json" title="Export to JSON">
+                <div class="source-icon" style="background-color: #795548;">
+                    <i class="fas fa-file-code"></i>
+                </div>
+                <div class="source-name">JSON</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="api" title="Send to API">
+                <div class="source-icon" style="background-color: #8e24aa;">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div class="source-name">API</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="blob" title="Azure Blob Storage">
+                <div class="source-icon" style="background-color: #0089d6;">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <div class="source-name">Blob Storage</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="s3" title="Amazon S3">
+                <div class="source-icon" style="background-color: #ff9900;">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <div class="source-name">Amazon S3</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="email" title="Email results">
+                <div class="source-icon" style="background-color: #4f46e5;">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="source-name">Email</div>
+            </div>
+            <div class="source draggable" draggable="true" data-type="powerbi" title="Power BI">
+                <div class="source-icon" style="background-color: #f2c811;">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="source-name">Power BI</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-area">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Projects</div>
+                <div class="sidebar-item active">
+                    <i class="fas fa-project-diagram"></i>
+                    Customer ETL
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-project-diagram"></i>
+                    Sales Pipeline
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-project-diagram"></i>
+                    Inventory Load
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-project-diagram"></i>
+                    Marketing Data
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Recent Workflows</div>
+                <div class="sidebar-item">
+                    <i class="fas fa-stream"></i>
+                    Customer Import
+                    <span class="sidebar-item-badge">New</span>
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-stream"></i>
+                    Sales Aggregation
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-stream"></i>
+                    Product Catalog
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Connections</div>
+                <div class="sidebar-item">
+                    <i class="fas fa-database"></i>
+                    SQL Production
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-database"></i>
+                    MySQL Analytics
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-cloud"></i>
+                    Azure Blob
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-plug"></i>
+                    REST API
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="main-content">
+            <div class="content-header">
+                <div class="section-header">
+                    <i class="fas fa-stream"></i>
+                    <span id="sectionTitle">Transform Workflow</span>
+                </div>
+                <div class="content-actions">
+                    <button class="button button-secondary" id="validateButton">
+                        <i class="fas fa-check-circle"></i>
+                        Validate
+                    </button>
+                    <button class="button button-secondary" id="saveButton">
+                        <i class="fas fa-save"></i>
+                        Save
+                    </button>
+                    <button class="button button-success" id="runButton">
+                        <i class="fas fa-play"></i>
+                        Run ETL
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <div class="workflow-container">
+                    <div class="workflow-sidebar">
+                        <div class="workflow-tool active" title="Select tool">
+                            <i class="fas fa-mouse-pointer"></i>
+                        </div>
+                        <div class="workflow-tool" title="Zoom in">
+                            <i class="fas fa-search-plus"></i>
+                        </div>
+                        <div class="workflow-tool" title="Zoom out">
+                            <i class="fas fa-search-minus"></i>
+                        </div>
+                        <div class="workflow-tool" title="Fit to view">
+                            <i class="fas fa-expand"></i>
+                        </div>
+                        <div class="workflow-tool" title="Undo">
+                            <i class="fas fa-undo"></i>
+                        </div>
+                        <div class="workflow-tool" title="Redo">
+                            <i class="fas fa-redo"></i>
+                        </div>
+                        <div class="workflow-tool" title="Clear canvas">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <div class="workflow-tool" title="Help">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-canvas">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="https://cdn-icons-png.flaticon.com/512/9616/9616945.png" alt="ETL Tool Symbol" style="width: 100px; height: auto;">
+                        </div>
+                        <div class="drop-area" id="dropArea">
+                            <div class="drop-hint">
+                               
+                                <h3>Start building your ETL workflow here data will visible</h3>
+                                <p></p>
+                            </div>
+                        </div>
+                        <div class="items-container" id="itemsContainer"></div>
+                    </div>
+                    <div class="property-panel" id="propertyPanel">
+                        <div class="property-group">
+                            <div class="property-group-title">
+                                <i class="fas fa-cog"></i>
+                                Component Properties
+                            </div>
+                            <div class="property-item">
+                                <label class="property-label">Name</label>
+                                <input type="text" class="property-control" id="componentName" placeholder="Enter component name">
+                            </div>
+                            <div class="property-item">
+                                <label class="property-label">Description</label>
+                                <textarea class="property-control" id="componentDescription" rows="3" placeholder="Enter description"></textarea>
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-group-title">
+                                <i class="fas fa-sliders-h"></i>
+                                Configuration
+                            </div>
+                            <div class="property-item" id="dynamicProperties">
+                                <!-- Dynamic properties will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-tasks"></i>
+                            Execution Results
+                            <span id="executionTime" style="margin-left: auto; font-size: 12px; color: var(--gray);"></span>
+                        </div>
+                        <div class="panel-actions">
+                            <button class="button button-secondary button-sm" id="showLogs">
+                                <i class="fas fa-list"></i>
+                                Show Logs
+                            </button>
+                            
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="execution-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon stat-icon-success">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Status</div>
+                                    <div class="stat-value" id="executionStatus">Ready</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon stat-icon-warning">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Duration</div>
+                                    <div class="stat-value" id="executionDuration">-</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon stat-icon-error">
+                                    <i class="fas fa-exclamation"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Errors</div>
+                                    <div class="stat-value" id="executionErrors">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="executionLogs" style="display: none;">
+                            <div class="log-entry">
+                                <div class="log-time">10:42:15</div>
+                                <div class="log-message">Starting ETL execution</div>
+                                <div class="log-level log-level-info">INFO</div>
+                            </div>
+                            <div class="log-entry">
+                                <div class="log-time">10:42:18</div>
+                                <div class="log-message">Connected to SQL Server</div>
+                                <div class="log-level log-level-success">SUCCESS</div>
+                            </div>
+                            <div class="log-entry">
+                                <div class="log-time">10:42:21</div>
+                                <div class="log-message">Extracted 1,245 records</div>
+                                <div class="log-level log-level-info">INFO</div>
+                            </div>
+                            <div class="log-entry">
+                                <div class="log-time">10:42:25</div>
+                                <div class="log-message">Applied transformations</div>
+                                <div class="log-level log-level-info">INFO</div>
+                            </div>
+                            <div class="log-entry">
+                                <div class="log-time">10:42:30</div>
+                                <div class="log-message">Loaded 1,245 records to target</div>
+                                <div class="log-level log-level-success">SUCCESS</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <!-- Add this before </body> -->
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<div id="chatbot-container" style="display: none; position: fixed; bottom: 20px; right: 20px; width: 340px; height: 450px; background: white; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 1000; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; border: 1px solid #e2e8f0; transition: all 0.3s ease; opacity: 0; transform: translateY(10px);">
+    <div style="background: linear-gradient(135deg, #4f46e5, #4338ca); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-weight: 600; font-size: 14px; display: flex; align-items: center;">
+            <i class="fas fa-robot" style="margin-right: 8px; font-size: 16px;"></i>
+            <span>Data Assistant</span>
+        </div>
+        <div>
+            <button id="minimize-chat" style="background: none; border: none; color: white; cursor: pointer; margin-right: 10px; font-size: 14px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                <i class="fas fa-minus"></i>
+            </button>
+            <button id="close-chatbot" style="background: none; border: none; color: white; cursor: pointer; font-size: 14px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div id="chat-messages" style="height: 310px; overflow-y: auto; padding: 16px; font-size: 14px; background: #f8fafc; scroll-behavior: smooth;"></div>
+    
+    <div style="padding: 12px 16px; border-top: 1px solid #e2e8f0; background: white;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input id="chat-input" type="text" placeholder="Type your data command here..." 
+                   style="flex: 1; padding: 10px 16px; border: 1px solid #e2e8f0; border-radius: 24px; font-size: 14px; outline: none; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <button id="send-chat" 
+                    style="background: #4f46e5; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(79,70,229,0.3); transition: all 0.2s ease;">
+                <i class="fas fa-paper-plane" style="font-size: 14px;"></i>
+            </button>
+        </div>
+        <div style="font-size: 12px; color: #64748b; margin-top: 10px; text-align: center; line-height: 1.4;">
+            Try commands like: <span style="color: #4f46e5; font-weight: 500;">"drop column id"</span> or <span style="color: #4f46e5; font-weight: 500;">"filter rows where price > 100"</span>
+        </div>
+    </div>
+</div>
+
+<button id="chatbot-toggle" 
+        style="position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #4f46e5, #4338ca); color: white; border: none; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 14px rgba(79,70,229,0.4); z-index: 999; display: flex; justify-content: center; align-items: center; font-size: 22px; transition: all 0.3s ease;">
+    <i class="fas fa-comments"></i>
+</button>
+    <div class="tooltip" id="tooltip"></div>
+<!-- Add this inside the content-body div, after the workflow-container -->
+<div id="dataDashboard" style="display: none;">
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="fas fa-chart-bar"></i>
+                Data Analysis Dashboard
+            </div>
+            <div class="panel-actions">
+                <button class="button button-secondary button-sm" id="exportDashboard">
+                    <i class="fas fa-file-export"></i>
+                    Export Report
+                </button>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="dashboard-grid">
+                <!-- Overview Cards -->
+                <div class="dashboard-card overview-card">
+                    <div class="card-header">
+                        <i class="fas fa-table"></i>
+                        Dataset Overview
+                    </div>
+                    <div class="card-content" id="overviewStats">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Data Quality Card -->
+                <div class="dashboard-card quality-card">
+                    <div class="card-header">
+                        <i class="fas fa-check-circle"></i>
+                        Data Quality
+                    </div>
+                    <div class="card-content" id="qualityStats">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Data Types Card -->
+                <div class="dashboard-card types-card">
+                    <div class="card-header">
+                        <i class="fas fa-code"></i>
+                        Data Types
+                    </div>
+                    <div class="card-content" id="typeStats">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Numeric Stats Card -->
+                <div class="dashboard-card numeric-card">
+                    <div class="card-header">
+                        <i class="fas fa-calculator"></i>
+                        Numeric Statistics
+                    </div>
+                    <div class="card-content" id="numericStats">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Missing Values Visualization -->
+                <div class="dashboard-card chart-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-pie"></i>
+                        Missing Values
+                    </div>
+                    <div class="card-content">
+                        <div id="missingValuesChart" style="height: 250px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Data Distribution -->
+                <div class="dashboard-card chart-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar"></i>
+                        Data Distribution
+                    </div>
+                    <div class="card-content">
+                        <div id="distributionChart" style="height: 250px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Outliers Detection -->
+                <div class="dashboard-card chart-card">
+                    <div class="card-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Outliers Detection
+                    </div>
+                    <div class="card-content">
+                        <div id="outliersChart" style="height: 250px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Data Description -->
+                <div class="dashboard-card full-width-card">
+                    <div class="card-header">
+                        <i class="fas fa-align-left"></i>
+                        Data Description
+                    </div>
+                    <div class="card-content" id="dataDescription">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        // Global variables
+        let droppedItems = [];
+        let selectedItem = null;
+        let workflowName = 'Untitled Workflow';
+        let isRunning = false;
+        let zoomLevel = 1;
+        let currentDataSource = null;
+        let currentData = null;
+        let currentFilename = null;
+        let charts = {};
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            setActiveTab(document.querySelector('.tab.active'), 'transform');
+            setupDraggableItems();
+            setupTooltips();
+            setupEventListeners();
+            simulateRealTimeUpdates();
+            updateExecutionStats();
+        });
+        // Function to analyze data and show dashboard
+function analyzeDataAndShowDashboard() {
+    if (!currentDataSource) {
+        showNotification('Error', 'Please select a data source first', 'error');
+        return;
+    }
+
+    const filename = currentDataSource.dataset.filename;
+    const sampleData = JSON.parse(currentDataSource.dataset.sampleData || '[]');
+    const columns = JSON.parse(currentDataSource.dataset.columns || '[]');
+
+    // Show loading state
+    showNotification('Analyzing', 'Analyzing dataset...', 'info');
+    
+    // Simulate analysis (in a real app, this would be an API call)
+    setTimeout(() => {
+        // Generate analysis results
+        const analysisResults = generateDataAnalysis(sampleData, columns);
+        
+        // Display the dashboard
+        displayDataDashboard(analysisResults);
+        
+        // Show success notification
+        showNotification('Analysis Complete', 'Dataset analysis completed', 'success');
+    }, 1500);
+}
+
+        // Add this to your existing JavaScript code
+
+// Global variable to track current transformation type
+let currentTransformType = null;
+
+// Update the showTransformModal function to handle all transformation types
+function showTransformModal(type) {
+    currentTransformType = type;
+    const modal = document.getElementById('transformModal');
+    const title = document.getElementById('transformModalTitle');
+    const content = document.getElementById('transformModalContent');
+    
+    const transformNames = {
+        'drop': 'Drop Column',
+        'rename': 'Rename Column',
+        'filter': 'Filter Rows',
+        'sort': 'Sort Data',
+        'aggregate': 'Aggregate Data',
+        'join': 'Join Tables',
+        'pivot': 'Pivot Table',
+        'dedupe': 'Remove Duplicates',
+        'fillna': 'Fill Missing Values',
+        'type': 'Type Conversion',
+        'parse': 'Parse Text',
+        'formula': 'Custom Formula',
+        'conditional': 'Conditional Logic',
+        'validation': 'Data Validation',
+        'script': 'Custom Script'
+    };
+    
+    title.textContent = transformNames[type] || 'Transform Data';
+    
+    let formContent = '';
+    const columns = currentDataSource ? JSON.parse(currentDataSource.dataset.columns || '[]') : [];
+    
+    switch(type) {
+        case 'drop':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Column to Drop</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'rename':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Current Column</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">New Column Name</label>
+                    <input type="text" id="transformParam2" class="property-control" style="width: 100%;" placeholder="Enter new column name">
+                </div>
+            `;
+            break;
+            
+        case 'filter':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Column</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Condition</label>
+                    <select id="transformParam2" class="property-control" style="width: 100%;">
+                        <option value="==">Equals</option>
+                        <option value="!=">Not Equals</option>
+                        <option value=">">Greater Than</option>
+                        <option value="<">Less Than</option>
+                        <option value=">=">Greater Than or Equal</option>
+                        <option value="<=">Less Than or Equal</option>
+                        <option value="contains">Contains</option>
+                        <option value="startsWith">Starts With</option>
+                        <option value="endsWith">Ends With</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Value</label>
+                    <input type="text" id="transformParam3" class="property-control" style="width: 100%;" placeholder="Enter filter value">
+                </div>
+            `;
+            break;
+            
+        case 'sort':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Column</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Order</label>
+                    <select id="transformParam2" class="property-control" style="width: 100%;">
+                        <option value="asc">Ascending</option>
+                        <option value="desc">Descending</option>
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'aggregate':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Group By Column</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Aggregate Column</label>
+                    <select id="transformParam2" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Aggregation Function</label>
+                    <select id="transformParam3" class="property-control" style="width: 100%;">
+                        <option value="sum">Sum</option>
+                        <option value="mean">Average</option>
+                        <option value="count">Count</option>
+                        <option value="min">Minimum</option>
+                        <option value="max">Maximum</option>
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'fillna':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Column</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Fill Value</label>
+                    <input type="text" id="transformParam2" class="property-control" style="width: 100%;" placeholder="Enter value to fill NA with">
+                </div>
+            `;
+            break;
+            
+        case 'type':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Column</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">New Data Type</label>
+                    <select id="transformParam2" class="property-control" style="width: 100%;">
+                        <option value="numeric">Numeric</option>
+                        <option value="string">String</option>
+                        <option value="datetime">Date/Time</option>
+                        <option value="boolean">Boolean</option>
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'dedupe':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Columns to Check (leave empty for all columns)</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;" multiple>
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Keep</label>
+                    <select id="transformParam2" class="property-control" style="width: 100%;">
+                        <option value="first">First Occurrence</option>
+                        <option value="last">Last Occurrence</option>
+                        <option value="none">Remove All Duplicates</option>
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'replace':
+            formContent = `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Column</label>
+                    <select id="transformParam1" class="property-control" style="width: 100%;">
+                        ${columns.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Value to Replace</label>
+                    <input type="text" id="transformParam2" class="property-control" style="width: 100%;" placeholder="Enter value to replace">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">New Value</label>
+                    <input type="text" id="transformParam3" class="property-control" style="width: 100%;" placeholder="Enter replacement value">
+                </div>
+            `;
+            break;
+            
+        default:
+            formContent = `<p>Configuration for this transformation will be available soon.</p>`;
+    }
+    
+    content.innerHTML = formContent;
+    modal.style.display = 'flex';
+}
+
+// Update the applyTransformation function
+function applyTransformation() {
+    if (!currentDataSource || !currentTransformType) return;
+    
+    const filename = currentDataSource.dataset.filename;
+    let params = {};
+    
+    // Get values based on transformation type
+    switch(currentTransformType) {
+        case 'drop':
+            params = {
+                type: 'drop',
+                columns: [document.getElementById('transformParam1').value]
+            };
+            break;
+            
+        case 'rename':
+            params = {
+                type: 'rename',
+                old_name: document.getElementById('transformParam1').value,
+                new_name: document.getElementById('transformParam2').value
+            };
+            break;
+            
+        case 'filter':
+            params = {
+                type: 'filter',
+                column: document.getElementById('transformParam1').value,
+                operator: document.getElementById('transformParam2').value,
+                value: document.getElementById('transformParam3').value
+            };
+            break;
+            
+        case 'sort':
+            params = {
+                type: 'sort',
+                column: document.getElementById('transformParam1').value,
+                ascending: document.getElementById('transformParam2').value === 'asc'
+            };
+            break;
+            
+        case 'aggregate':
+            params = {
+                type: 'aggregate',
+                group_by: document.getElementById('transformParam1').value,
+                column: document.getElementById('transformParam2').value,
+                function: document.getElementById('transformParam3').value
+            };
+            break;
+            
+        case 'fillna':
+            params = {
+                type: 'fillna',
+                column: document.getElementById('transformParam1').value,
+                value: document.getElementById('transformParam2').value
+            };
+            break;
+            
+        case 'type':
+            params = {
+                type: 'type_conversion',
+                column: document.getElementById('transformParam1').value,
+                new_type: document.getElementById('transformParam2').value
+            };
+            break;
+            
+        case 'dedupe':
+            const selectedOptions = Array.from(document.getElementById('transformParam1').selectedOptions)
+                .map(option => option.value);
+            params = {
+                type: 'dedupe',
+                subset: selectedOptions.length > 0 ? selectedOptions : null,
+                keep: document.getElementById('transformParam2').value
+            };
+            break;
+            
+        case 'replace':
+            params = {
+                type: 'replace',
+                column: document.getElementById('transformParam1').value,
+                to_replace: document.getElementById('transformParam2').value,
+                value: document.getElementById('transformParam3').value
+            };
+            break;
+    }
+    
+    // Close the modal
+    document.getElementById('transformModal').style.display = 'none';
+    
+    // Show loading indicator
+    showNotification('Processing', `Applying ${currentTransformType} transformation...`, 'info');
+    
+    // Send transformation request to server
+    fetch('/transform', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            filename: filename,
+            params: params
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            showNotification('Success', data.message, 'success');
+            
+            // Update the current data source with transformed data
+            if (data.sample_data && data.columns) {
+                currentDataSource.dataset.sampleData = JSON.stringify(data.sample_data);
+                currentDataSource.dataset.columns = JSON.stringify(data.columns);
+                
+                // Refresh the data display
+                displayDataInWorkflowArea(data.sample_data, data.columns);
+            }
+        } else if (data.error) {
+            showNotification('Error', data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Error', 'Failed to apply transformation', 'error');
+        console.error('Transformation error:', error);
+    });
+}
+
+// Add event listeners for transformation buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Transformation modal buttons
+    document.getElementById('closeTransformModal').addEventListener('click', function() {
+        document.getElementById('transformModal').style.display = 'none';
+    });
+    
+    document.getElementById('cancelTransform').addEventListener('click', function() {
+        document.getElementById('transformModal').style.display = 'none';
+    });
+    
+    document.getElementById('applyTransform').addEventListener('click', applyTransformation);
+    
+    // Set up click handlers for transformation buttons in the features scroller
+    document.querySelectorAll('.features-scroller .source[data-type]').forEach(button => {
+        const type = button.getAttribute('data-type');
+        
+        // Only attach handlers to transform buttons (not extract or load)
+        if (type !== 'excel' && type !== 'csv' && type !== 'json' && 
+            type !== 'sqlserver' && type !== 'mysql' && type !== 'postgres' && 
+            type !== 'mongodb' && type !== 'api' && type !== 'web' && 
+            type !== 'sharepoint' && type !== 'blob' && type !== 's3' && 
+            type !== 'google' && type !== 'sftp') {
+            
+            button.addEventListener('click', function(e) {
+                if (!currentDataSource) {
+                    showNotification('Error', 'Please select a data source first', 'error');
+                    return;
+                }
+                showTransformModal(type);
+            });
+        }
+    });
+});
+        
+        // Set active tab
+        function setActiveTab(tab, tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const extractSources = document.getElementById('extractSources');
+            const transformFeatures = document.getElementById('transformFeatures');
+            const databaseOptions = document.getElementById('databaseOptions');
+            
+            extractSources.classList.remove('active');
+            transformFeatures.classList.remove('active');
+            databaseOptions.classList.remove('active');
+            
+            switch(tabName) {
+                case 'extract':
+                    extractSources.classList.add('active');
+                    document.getElementById('sectionTitle').textContent = 'Extract Workflow';
+                    break;
+                case 'transform':
+                    transformFeatures.classList.add('active');
+                    document.getElementById('sectionTitle').textContent = 'Transform Workflow';
+                    break;
+                case 'load':
+                    databaseOptions.classList.add('active');
+                    document.getElementById('sectionTitle').textContent = 'Load Workflow';
+                    break;
+            }
+        }
+        
+        // Make the data sources draggable
+        function setupDraggableItems() {
+            document.querySelectorAll('.source.draggable').forEach(source => {
+                source.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('source-type', this.getAttribute('data-type'));
+                    e.dataTransfer.setData('source-name', this.querySelector('.source-name').textContent);
+                    e.dataTransfer.setData('source-icon', this.querySelector('.source-icon').innerHTML);
+                    e.dataTransfer.setData('source-color', this.querySelector('.source-icon').style.backgroundColor);
+                    this.classList.add('dragging');
+                });
+                
+                source.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                });
+            });
+        }
+        
+        // Setup tooltips
+        function setupTooltips() {
+            const tooltip = document.getElementById('tooltip');
+            
+            document.querySelectorAll('[title]').forEach(element => {
+                element.addEventListener('mouseenter', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    tooltip.textContent = this.getAttribute('title');
+                    tooltip.style.left = `${rect.left + rect.width/2 - tooltip.offsetWidth/2}px`;
+                    tooltip.style.top = `${rect.top - tooltip.offsetHeight - 5}px`;
+                    tooltip.style.opacity = '1';
+                });
+                
+                element.addEventListener('mouseleave', function() {
+                    tooltip.style.opacity = '0';
+                });
+            });
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            const dropArea = document.getElementById('dropArea');
+            const itemsContainer = document.getElementById('itemsContainer');
+            const propertyPanel = document.getElementById('propertyPanel');
+            const runButton = document.getElementById('runButton');
+            const validateButton = document.getElementById('validateButton');
+            const saveButton = document.getElementById('saveButton');
+            const showLogs = document.getElementById('showLogs');
+            const executionLogs = document.getElementById('executionLogs');
+            
+            // Drop area events
+            dropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('active-drop');
+            });
+            
+            dropArea.addEventListener('dragleave', function() {
+                this.classList.remove('active-drop');
+            });
+            
+            dropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('active-drop');
+                
+                const sourceType = e.dataTransfer.getData('source-type');
+                const sourceName = e.dataTransfer.getData('source-name');
+                const sourceIcon = e.dataTransfer.getData('source-icon');
+                const sourceColor = e.dataTransfer.getData('source-color');
+                
+                // Get the position relative to the drop area
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Create a new dropped item
+                createDroppedItem(sourceType, sourceName, sourceIcon, sourceColor, x, y);
+            });
+            
+            // Canvas click event to deselect items
+            dropArea.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    if (selectedItem) {
+                        selectedItem.classList.remove('selected');
+                        selectedItem = null;
+                        propertyPanel.classList.remove('active');
+                    }
+                }
+            });
+            
+            // Run button click
+            runButton.addEventListener('click', function() {
+                if (isRunning) return;
+                runETLProcess();
+            });
+            
+            // Validate button click
+            validateButton.addEventListener('click', function() {
+                validateWorkflow();
+            });
+            
+            // Save button click
+            saveButton.addEventListener('click', function() {
+                saveWorkflow();
+            });
+            
+            // Show logs toggle
+            showLogs.addEventListener('click', function() {
+                executionLogs.style.display = executionLogs.style.display === 'none' ? 'block' : 'none';
+                this.innerHTML = executionLogs.style.display === 'none' ? 
+                    '<i class="fas fa-list"></i> Show Logs' : 
+                    '<i class="fas fa-times"></i> Hide Logs';
+            });
+        }
+        // Chatbot functionality with improved styling and animations
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatbotContainer = document.getElementById('chatbot-container');
+        const toggleButton = document.getElementById('chatbot-toggle');
+        const closeButton = document.getElementById('close-chatbot');
+        const minimizeButton = document.getElementById('minimize-chat');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-chat');
+        const chatMessages = document.getElementById('chat-messages');
+        
+        let isMinimized = false;
+        
+        // Add loading animation to the chatbot
+        function showLoadingIndicator() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.style.display = 'flex';
+            loadingDiv.style.alignItems = 'center';
+            loadingDiv.style.margin = '8px 0 8px 40px';
+            
+            // Create dots
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('div');
+                dot.style.height = '8px';
+                dot.style.width = '8px';
+                dot.style.borderRadius = '50%';
+                dot.style.background = '#a5b4fc';
+                dot.style.margin = '0 3px';
+                dot.style.animation = 'pulse 1s infinite';
+                dot.style.animationDelay = `${i * 0.3}s`;
+                loadingDiv.appendChild(dot);
+            }
+            
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return loadingDiv;
+        }
+        
+        // Toggle chatbot visibility with animation
+        toggleButton.addEventListener('click', () => {
+            chatbotContainer.style.display = 'block';
+            // Trigger animation after display is set
+            setTimeout(() => {
+                chatbotContainer.style.opacity = '1';
+                chatbotContainer.style.transform = 'translateY(0)';
+            }, 10);
+            toggleButton.style.display = 'none';
+            chatInput.focus();
+        });
+        
+        // Close chatbot with animation
+        closeButton.addEventListener('click', () => {
+            chatbotContainer.style.opacity = '0';
+            chatbotContainer.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                chatbotContainer.style.display = 'none';
+                toggleButton.style.display = 'flex';
+            }, 300);
+        });
+        
+        // Minimize/maximize chatbot
+        minimizeButton.addEventListener('click', () => {
+            if (isMinimized) {
+                chatbotContainer.style.height = '450px';
+                chatMessages.style.height = '310px';
+                minimizeButton.innerHTML = '<i class="fas fa-minus"></i>';
+            } else {
+                chatbotContainer.style.height = '180px';
+                chatMessages.style.height = '40px';
+                minimizeButton.innerHTML = '<i class="fas fa-plus"></i>';
+            }
+            isMinimized = !isMinimized;
+        });
+        
+        // In your index.html, update the sendMessage function
+function sendMessage() {
+    const message = chatInput.value.trim();
+    if (!message) return;
+    
+    // Add user message to chat
+    addMessage(message, 'user');
+    chatInput.value = '';
+    
+    // Show typing indicator
+    const loadingIndicator = showLoadingIndicator();
+    
+    // Get current filename from your app
+    const currentFilename = currentDataSource ? currentDataSource.dataset.filename : 'unknown';
+    
+    // Send to backend - UPDATED URL
+    fetch('/chatbot/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            message: message, 
+            filename: currentFilename 
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server responded with ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Remove loading indicator
+        chatMessages.removeChild(loadingIndicator);
+        
+        if (data.status === 'success') {
+            // Add bot response
+            addMessage(data.message, 'bot');
+            
+            // Update your main app if columns changed
+            if (data.columns) {
+                console.log('Columns updated:', data.columns);
+                // Refresh data display if needed
+                if (currentDataSource) {
+                    currentDataSource.dataset.columns = JSON.stringify(data.columns);
+                    refreshDataPreview();
+                }
+            }
+        } else {
+            addMessage(data.message || "Operation failed", 'bot');
+        }
+    })
+    .catch(error => {
+        // Remove loading indicator
+        chatMessages.removeChild(loadingIndicator);
+        addMessage("❌ Error: " + error.message, 'bot');
+        console.error("Chatbot error:", error);
+    });
+}
+        // Add message to chat UI with improved styling
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.display = 'flex';
+            messageDiv.style.marginBottom = '12px';
+            messageDiv.style.animation = 'fadeIn 0.3s forwards';
+            
+            if (sender === 'user') {
+                messageDiv.style.flexDirection = 'row-reverse';
+            }
+            
+            // Avatar
+            const avatar = document.createElement('div');
+            avatar.style.width = '32px';
+            avatar.style.height = '32px';
+            avatar.style.borderRadius = '50%';
+            avatar.style.display = 'flex';
+            avatar.style.alignItems = 'center';
+            avatar.style.justifyContent = 'center';
+            avatar.style.flexShrink = '0';
+            avatar.style.margin = '0 8px';
+            
+            if (sender === 'user') {
+                avatar.style.backgroundColor = '#e0e7ff';
+                avatar.style.color = '#4f46e5';
+                avatar.innerHTML = '<i class="fas fa-user"></i>';
+            } else {
+                avatar.style.backgroundColor = '#dbeafe';
+                avatar.style.color = '#3b82f6';
+                avatar.innerHTML = '<i class="fas fa-robot"></i>';
+            }
+            
+            // Message bubble
+            const bubble = document.createElement('div');
+            bubble.style.padding = '10px 14px';
+            bubble.style.borderRadius = '18px';
+            bubble.style.maxWidth = '70%';
+            bubble.style.fontSize = '14px';
+            bubble.style.lineHeight = '1.5';
+            bubble.style.wordBreak = 'break-word';
+            
+            if (sender === 'user') {
+                bubble.style.backgroundColor = '#4f46e5';
+                bubble.style.color = 'white';
+                bubble.style.borderTopRightRadius = '4px';
+            } else {
+                bubble.style.backgroundColor = '#e2e8f0';
+                bubble.style.color = '#1e293b';
+                bubble.style.borderTopLeftRadius = '4px';
+            }
+            
+            // Format message text - handle code suggestions
+            if (sender === 'bot' && text.includes('-')) {
+                const lines = text.split('\n');
+                
+                lines.forEach((line, index) => {
+                    if (line.trim().startsWith('-')) {
+                        const codeSpan = document.createElement('div');
+                        codeSpan.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+                        codeSpan.style.padding = '6px 10px';
+                        codeSpan.style.borderRadius = '6px';
+                        codeSpan.style.margin = '4px 0';
+                        codeSpan.style.fontFamily = 'monospace';
+                        codeSpan.style.cursor = 'pointer';
+                        codeSpan.style.transition = 'background 0.2s';
+                        codeSpan.textContent = line.trim();
+                        
+                        // Add hover effect
+                        codeSpan.addEventListener('mouseover', () => {
+                            codeSpan.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                        });
+                        codeSpan.addEventListener('mouseout', () => {
+                            codeSpan.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+                        });
+                        
+                        // Click to copy to input
+                        codeSpan.addEventListener('click', () => {
+                            chatInput.value = line.trim().substring(2);
+                            chatInput.focus();
+                        });
+                        
+                        bubble.appendChild(codeSpan);
+                        
+                        if (index < lines.length - 1) {
+                            bubble.appendChild(document.createElement('br'));
+                        }
+                    } else {
+                        const textNode = document.createTextNode(line);
+                        bubble.appendChild(textNode);
+                        
+                        if (index < lines.length - 1) {
+                            bubble.appendChild(document.createElement('br'));
+                        }
+                    }
+                });
+            } else {
+                bubble.textContent = text;
+            }
+            
+            if (sender === 'user') {
+                messageDiv.appendChild(bubble);
+                messageDiv.appendChild(avatar);
+            } else {
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(bubble);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Send on Enter or button click
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        // Welcome message with staggered appearance
+        setTimeout(() => {
+            addMessage("Hi! I can help modify your data. Try commands like:", 'bot');
+            
+            setTimeout(() => {
+                addMessage("- drop column [name]", 'bot');
+            }, 800);
+            
+            setTimeout(() => {
+                addMessage("- rename column [old] to [new]", 'bot');
+            }, 1600);
+            
+            setTimeout(() => {
+                addMessage("- filter rows where [condition]", 'bot');
+            }, 2400);
+        }, 500);
+    });
+    
+
+
+        // Handle extract source click
+        function handleExtractSourceClick(sourceType) {
+            switch(sourceType) {
+                case 'excel':
+                case 'csv':
+                case 'json':
+                    triggerFileUpload(sourceType);
+                    break;
+                case 'sqlserver':
+                case 'mysql':
+                case 'postgres':
+                case 'oracle':
+                case 'mongodb':
+                    showDatabaseConnectionDialog(sourceType);
+                    break;
+                case 'api':
+                    showApiConnectionDialog();
+                    break;
+                case 'web':
+                    showWebScrapingDialog();
+                    break;
+                case 'sharepoint':
+                case 'blob':
+                case 's3':
+                case 'google':
+                case 'sftp':
+                    showCloudConnectionDialog(sourceType);
+                    break;
+                default:
+                    showNotification('Info', `Feature for ${sourceType} coming soon`, 'info');
+            }
+        }
+        
+        // Function to trigger file upload
+        function triggerFileUpload(fileType) {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            
+            // Set accepted file types based on the source type
+            switch(fileType) {
+                case 'excel':
+                    fileInput.accept = '.xlsx,.xls,.csv';
+                    break;
+                case 'csv':
+                    fileInput.accept = '.csv,.txt';
+                    break;
+                case 'json':
+                    fileInput.accept = '.json';
+                    break;
+            }
+            
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                try {
+                    showNotification('Uploading', `Processing ${fileType.toUpperCase()} file...`, 'info');
+                    
+                    const response = await fetch('/upload-excel', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        showNotification('Success', data.message, 'success');
+                        
+                        // Hide the drop area message
+                        document.getElementById('dropArea').style.display = 'none';
+                        
+                        // Create data source component and store the data
+                        createDataSourceComponent(fileType, data.filename, data.columns, data.sample_data);
+                    } else {
+                        showNotification('Error', data.error || 'Failed to process file', 'error');
+                    }
+                } catch (error) {
+                    showNotification('Error', 'Failed to upload file', 'error');
+                    console.error('Upload error:', error);
+                }
+            };
+            
+            fileInput.click();
+        }
+        
+        // Function to create a data source component in the workflow
+        function createDataSourceComponent(sourceType, filename, columns, sampleData) {
+            const dropArea = document.getElementById('dropArea');
+            const rect = dropArea.getBoundingClientRect();
+            const x = rect.width / 2 - 60;
+            const y = rect.height / 2 - 50;
+            
+            // Determine icon and color based on source type
+            let icon, color, displayName;
+            
+            switch(sourceType) {
+                case 'excel':
+                    icon = '<i class="fas fa-file-excel"></i>';
+                    color = '#217346';
+                    displayName = `Excel: ${filename}`;
+                    break;
+                case 'csv':
+                    icon = '<i class="fas fa-file-csv"></i>';
+                    color = '#00a651';
+                    displayName = `CSV: ${filename}`;
+                    break;
+                case 'json':
+                    icon = '<i class="fas fa-file-code"></i>';
+                    color = '#795548';
+                    displayName = `JSON: ${filename}`;
+                    break;
+                default:
+                    icon = '<i class="fas fa-database"></i>';
+                    color = '#336791';
+                    displayName = `${sourceType}: ${filename}`;
+            }
+            
+            // Create the data source component
+            createDroppedItem(
+                sourceType,
+                displayName,
+                icon,
+                color,
+                x,
+                y
+            );
+            
+            // Store the data with the component
+            const dataComponent = droppedItems[droppedItems.length - 1].element;
+            dataComponent.dataset.filename = filename;
+            dataComponent.dataset.columns = JSON.stringify(columns);
+            dataComponent.dataset.sampleData = JSON.stringify(sampleData);
+            
+            // Set as current data source
+            currentDataSource = dataComponent;
+            
+            // Display the data in the workflow area
+            displayDataInWorkflowArea(sampleData, columns);
+        }
+        
+        // Function to display data in the workflow area
+        function displayDataInWorkflowArea(data, columns) {
+            const itemsContainer = document.getElementById('itemsContainer');
+            
+            // Clear any existing items except dropped components
+            const components = Array.from(itemsContainer.querySelectorAll('.dropped-item'));
+            itemsContainer.innerHTML = '';
+            components.forEach(comp => itemsContainer.appendChild(comp));
+            
+            // Create a container for the data display
+            const dataContainer = document.createElement('div');
+            dataContainer.className = 'data-display-container';
+            
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'data-preview-header';
+            header.innerHTML = `
+                <div class="data-preview-title">Data Preview</div>
+                <div class="data-preview-actions">
+                    <button class="button button-secondary button-sm" onclick="refreshDataPreview()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            `;
+            dataContainer.appendChild(header);
+            
+            // Create table container
+            const tableContainer = document.createElement('div');
+            tableContainer.style.overflow = 'auto';
+            tableContainer.style.maxHeight = '400px';
+            
+            if (!data || data.length === 0) {
+                tableContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: var(--gray);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px;"></i>
+                        <p>No data available in the uploaded file.</p>
+                    </div>
+                `;
+                dataContainer.appendChild(tableContainer);
+                itemsContainer.appendChild(dataContainer);
+                return;
+            }
+            
+            // Generate HTML table
+            let html = '<table class="preview-table" style="width:100%;">';
+            
+            // Header row
+            html += '<tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr>';
+            
+            // Data rows
+            data.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    html += `<td>${row[col] !== null && row[col] !== undefined ? row[col] : '<span style="color:var(--gray);">NULL</span>'}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</table>';
+            tableContainer.innerHTML = html;
+            dataContainer.appendChild(tableContainer);
+            itemsContainer.appendChild(dataContainer);
+        }
+        
+        // Function to refresh data preview
+        function refreshDataPreview() {
+            if (!currentDataSource) return;
+            
+            const filename = currentDataSource.dataset.filename;
+            const columns = JSON.parse(currentDataSource.dataset.columns || '[]');
+            const sampleData = JSON.parse(currentDataSource.dataset.sampleData || '[]');
+            
+            displayDataInWorkflowArea(sampleData, columns);
+            showNotification('Refreshed', 'Data preview has been refreshed', 'success');
+        }
+        
+        // Function to show database connection dialog
+        function showDatabaseConnectionDialog(dbType) {
+            const dbNames = {
+                'sqlserver': 'SQL Server',
+                'mysql': 'MySQL',
+                'postgres': 'PostgreSQL',
+                'oracle': 'Oracle',
+                'mongodb': 'MongoDB'
+            };
+            
+            const modal = createModal(`
+                <h3 style="margin-bottom: 15px; color: var(--dark);">Connect to ${dbNames[dbType]}</h3>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Server/Host</label>
+                    <input type="text" id="hostInput" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Database Name</label>
+                    <input type="text" id="dbNameInput" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Username</label>
+                    <input type="text" id="usernameInput" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Password</label>
+                    <input type="password" id="passwordInput" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Table/Collection</label>
+                    <input type="text" id="tableInput" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button id="cancelBtn" style="padding: 8px 16px; background: var(--gray-light); border: none; border-radius: 6px; cursor: pointer; color: var(--dark);">Cancel</button>
+                    <button id="testBtn" style="padding: 8px 16px; background: var(--info); color: white; border: none; border-radius: 6px; cursor: pointer;">Test Connection</button>
+                    <button id="connectBtn" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">Connect</button>
+                </div>
+            `);
+            
+            // Test connection button
+            modal.querySelector('#testBtn').addEventListener('click', function() {
+                showNotification('Testing', `Testing connection to ${dbNames[dbType]}...`, 'info');
+                // Simulate connection test
+                setTimeout(() => {
+                    showNotification('Success', `Successfully connected to ${dbNames[dbType]}`, 'success');
+                }, 1500);
+            });
+            
+            // Connect button
+            modal.querySelector('#connectBtn').addEventListener('click', function() {
+                const host = modal.querySelector('#hostInput').value.trim();
+                const dbName = modal.querySelector('#dbNameInput').value.trim();
+                const table = modal.querySelector('#tableInput').value.trim();
+                
+                if (!host || !dbName || !table) {
+                    showNotification('Error', 'Please fill all required fields', 'error');
+                    return;
+                }
+                
+                showNotification('Connecting', `Connecting to ${dbNames[dbType]}...`, 'info');
+                
+                // Simulate connection and data fetch
+                setTimeout(() => {
+                    // Simulate sample data
+                    const sampleData = [
+                        { id: 1, name: 'Sample Data 1', value: 100, date: '2023-01-01' },
+                        { id: 2, name: 'Sample Data 2', value: 200, date: '2023-01-02' },
+                        { id: 3, name: 'Sample Data 3', value: 300, date: '2023-01-03' }
+                    ];
+                    const columns = Object.keys(sampleData[0]);
+                    
+                    // Create the data source component
+                    createDataSourceComponent(
+                        dbType, 
+                        `${dbName}.${table}`, 
+                        columns, 
+                        sampleData
+                    );
+                    
+                    document.body.removeChild(modal);
+                }, 2000);
+            });
+            
+            // Cancel button
+            modal.querySelector('#cancelBtn').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+        
+        // Function to show API connection dialog
+        function showApiConnectionDialog() {
+            const modal = createModal(`
+                <h3 style="margin-bottom: 15px; color: var(--dark);">Connect to API</h3>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">API Endpoint URL</label>
+                    <input type="text" id="apiUrlInput" placeholder="https://api.example.com/data" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Authentication</label>
+                    <select id="authTypeSelect" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                        <option value="none">None</option>
+                        <option value="basic">Basic Auth</option>
+                        <option value="bearer">Bearer Token</option>
+                        <option value="apiKey">API Key</option>
+                    </select>
+                    
+                    <div id="authFields" style="display: none; margin-bottom: 15px;">
+                        <!-- Dynamic auth fields will be inserted here -->
+                    </div>
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Request Method</label>
+                    <select id="methodSelect" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button id="cancelBtn" style="padding: 8px 16px; background: var(--gray-light); border: none; border-radius: 6px; cursor: pointer; color: var(--dark);">Cancel</button>
+                    <button id="testBtn" style="padding: 8px 16px; background: var(--info); color: white; border: none; border-radius: 6px; cursor: pointer;">Test Connection</button>
+                    <button id="connectBtn" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">Connect</button>
+                </div>
+            `);
+            
+            // Show/hide auth fields based on selection
+            modal.querySelector('#authTypeSelect').addEventListener('change', function() {
+                const authFields = modal.querySelector('#authFields');
+                const authType = this.value;
+                
+                let authHtml = '';
+                switch(authType) {
+                    case 'basic':
+                        authHtml = `
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Username</label>
+                            <input type="text" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 10px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Password</label>
+                            <input type="password" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                        `;
+                        break;
+                    case 'bearer':
+                        authHtml = `
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Bearer Token</label>
+                            <input type="text" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                        `;
+                        break;
+                    case 'apiKey':
+                        authHtml = `
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">API Key</label>
+                            <input type="text" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 10px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Key Location</label>
+                            <select style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                                <option value="header">Header</option>
+                                <option value="query">Query Parameter</option>
+                            </select>
+                        `;
+                        break;
+                }
+                
+                authFields.innerHTML = authHtml;
+                authFields.style.display = authType === 'none' ? 'none' : 'block';
+            });
+            
+            // Test connection button
+            modal.querySelector('#testBtn').addEventListener('click', function() {
+                const apiUrl = modal.querySelector('#apiUrlInput').value.trim();
+                
+                if (!apiUrl) {
+                    showNotification('Error', 'Please enter API endpoint URL', 'error');
+                    return;
+                }
+                
+                showNotification('Testing', 'Testing API connection...', 'info');
+                // Simulate connection test
+                setTimeout(() => {
+                    showNotification('Success', 'Successfully connected to API', 'success');
+                }, 1500);
+            });
+            
+            // Connect button
+            modal.querySelector('#connectBtn').addEventListener('click', function() {
+                const apiUrl = modal.querySelector('#apiUrlInput').value.trim();
+                
+                if (!apiUrl) {
+                    showNotification('Error', 'Please enter API endpoint URL', 'error');
+                    return;
+                }
+                
+                showNotification('Connecting', 'Connecting to API...', 'info');
+                
+                // Simulate connection and data fetch
+                setTimeout(() => {
+                    // Simulate sample data from API
+                    const sampleData = [
+                        { id: 1, name: 'API Data 1', value: 150, date: '2023-02-01' },
+                        { id: 2, name: 'API Data 2', value: 250, date: '2023-02-02' },
+                        { id: 3, name: 'API Data 3', value: 350, date: '2023-02-03' }
+                    ];
+                    const columns = Object.keys(sampleData[0]);
+                    
+                    // Create the data source component
+                    createDataSourceComponent(
+                        'api', 
+                        apiUrl.replace(/^https?:\/\//, '').split('/')[0], 
+                        columns, 
+                        sampleData
+                    );
+                    
+                    document.body.removeChild(modal);
+                }, 2000);
+            });
+            
+            // Cancel button
+            modal.querySelector('#cancelBtn').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+        
+        // Function to show web scraping dialog
+        function showWebScrapingDialog() {
+            const modal = createModal(`
+                <h3 style="margin-bottom: 15px; color: var(--dark);">Web Scraping Configuration</h3>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Website URL</label>
+                    <input type="text" id="urlInput" placeholder="https://example.com" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Data to Extract</label>
+                    <div style="border: 1px solid var(--gray-light); border-radius: 4px; padding: 10px; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" placeholder="Column name" style="flex: 1; padding: 6px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                            <input type="text" placeholder="CSS selector" style="flex: 2; padding: 6px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                            <button style="padding: 6px; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <button style="padding: 6px 10px; background: var(--gray-light); border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-plus"></i> Add Field
+                        </button>
+                    </div>
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Pagination (if any)</label>
+                    <select id="paginationSelect" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                        <option value="none">No pagination</option>
+                        <option value="url">URL pattern</option>
+                        <option value="button">Next button</option>
+                    </select>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button id="cancelBtn" style="padding: 8px 16px; background: var(--gray-light); border: none; border-radius: 6px; cursor: pointer; color: var(--dark);">Cancel</button>
+                    <button id="testBtn" style="padding: 8px 16px; background: var(--info); color: white; border: none; border-radius: 6px; cursor: pointer;">Test Scraping</button>
+                    <button id="scrapeBtn" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">Scrape Data</button>
+                </div>
+            `);
+            
+            // Test scraping button
+            modal.querySelector('#testBtn').addEventListener('click', function() {
+                const url = modal.querySelector('#urlInput').value.trim();
+                
+                if (!url) {
+                    showNotification('Error', 'Please enter website URL', 'error');
+                    return;
+                }
+                
+                showNotification('Testing', 'Testing web scraping configuration...', 'info');
+                // Simulate test
+                setTimeout(() => {
+                    showNotification('Success', 'Successfully tested scraping configuration', 'success');
+                }, 1500);
+            });
+            
+            // Scrape button
+            modal.querySelector('#scrapeBtn').addEventListener('click', function() {
+                const url = modal.querySelector('#urlInput').value.trim();
+                
+                if (!url) {
+                    showNotification('Error', 'Please enter website URL', 'error');
+                    return;
+                }
+                
+                showNotification('Scraping', 'Scraping data from website...', 'info');
+                
+                // Simulate scraping
+                setTimeout(() => {
+                    // Simulate sample scraped data
+                    const sampleData = [
+                        { title: 'Web Data 1', price: '$19.99', rating: '4.5' },
+                        { title: 'Web Data 2', price: '$29.99', rating: '4.2' },
+                        { title: 'Web Data 3', price: '$9.99', rating: '4.7' }
+                    ];
+                    const columns = Object.keys(sampleData[0]);
+                    
+                    // Create the data source component
+                    createDataSourceComponent(
+                        'web', 
+                        url.replace(/^https?:\/\//, '').split('/')[0], 
+                        columns, 
+                        sampleData
+                    );
+                    
+                    document.body.removeChild(modal);
+                }, 2000);
+            });
+            
+            // Cancel button
+            modal.querySelector('#cancelBtn').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+        
+        // Function to show cloud connection dialog
+        function showCloudConnectionDialog(cloudType) {
+            const cloudNames = {
+                'sharepoint': 'SharePoint',
+                'blob': 'Azure Blob Storage',
+                's3': 'Amazon S3',
+                'google': 'Google Drive',
+                'sftp': 'SFTP'
+            };
+            
+            const modal = createModal(`
+                <h3 style="margin-bottom: 15px; color: var(--dark);">Connect to ${cloudNames[cloudType]}</h3>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Connection Details</label>
+                    <input type="text" id="connectionInput" placeholder="${cloudType === 'sftp' ? 'sftp://example.com' : 'Connection string or endpoint'}" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Authentication</label>
+                    <select id="authTypeSelect" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 15px;">
+                        <option value="key">Access Key</option>
+                        <option value="oauth">OAuth</option>
+                        <option value="credentials">Credentials</option>
+                    </select>
+                    
+                    <div id="authFields">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Access Key</label>
+                        <input type="text" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Secret Key</label>
+                        <input type="password" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                    </div>
+                    
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">File Path/Container</label>
+                    <input type="text" id="pathInput" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button id="cancelBtn" style="padding: 8px 16px; background: var(--gray-light); border: none; border-radius: 6px; cursor: pointer; color: var(--dark);">Cancel</button>
+                    <button id="testBtn" style="padding: 8px 16px; background: var(--info); color: white; border: none; border-radius: 6px; cursor: pointer;">Test Connection</button>
+                    <button id="connectBtn" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">Connect</button>
+                </div>
+            `);
+            
+            // Change auth fields based on auth type
+            modal.querySelector('#authTypeSelect').addEventListener('change', function() {
+                const authFields = modal.querySelector('#authFields');
+                const authType = this.value;
+                
+                let authHtml = '';
+                switch(authType) {
+                    case 'key':
+                        authHtml = `
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Access Key</label>
+                            <input type="text" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 10px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Secret Key</label>
+                            <input type="password" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                        `;
+                        break;
+                    case 'oauth':
+                        authHtml = `
+                            <button style="width: 100%; padding: 8px; background: #4285F4; color: white; border: none; border-radius: 4px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fab fa-google"></i> Sign in with Google
+                            </button>
+                            <button style="width: 100%; padding: 8px; background: #0078d4; color: white; border: none; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <i class="fab fa-microsoft"></i> Sign in with Microsoft
+                            </button>
+                        `;
+                        break;
+                    case 'credentials':
+                        authHtml = `
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Username</label>
+                            <input type="text" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px; margin-bottom: 10px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--dark);">Password</label>
+                            <input type="password" style="width: 100%; padding: 8px; border: 1px solid var(--gray-light); border-radius: 4px;">
+                        `;
+                        break;
+                }
+                
+                authFields.innerHTML = authHtml;
+            });
+            
+            // Test connection button
+            modal.querySelector('#testBtn').addEventListener('click', function() {
+                const connection = modal.querySelector('#connectionInput').value.trim();
+                
+                if (!connection) {
+                    showNotification('Error', 'Please enter connection details', 'error');
+                    return;
+                }
+                
+                showNotification('Testing', `Testing connection to ${cloudNames[cloudType]}...`, 'info');
+                // Simulate connection test
+                setTimeout(() => {
+                    showNotification('Success', `Successfully connected to ${cloudNames[cloudType]}`, 'success');
+                }, 1500);
+            });
+            
+            // Connect button
+            modal.querySelector('#connectBtn').addEventListener('click', function() {
+                const connection = modal.querySelector('#connectionInput').value.trim();
+                const path = modal.querySelector('#pathInput').value.trim();
+                
+                if (!connection || !path) {
+                    showNotification('Error', 'Please fill all required fields', 'error');
+                    return;
+                }
+                
+                showNotification('Connecting', `Connecting to ${cloudNames[cloudType]}...`, 'info');
+                
+                // Simulate connection and data fetch
+                setTimeout(() => {
+                    // Simulate sample data
+                    const sampleData = [
+                        { filename: 'data1.csv', size: '1.2 MB', modified: '2023-03-01' },
+                        { filename: 'data2.json', size: '0.8 MB', modified: '2023-03-02' },
+                        { filename: 'report.xlsx', size: '2.5 MB', modified: '2023-03-03' }
+                    ];
+                    const columns = Object.keys(sampleData[0]);
+                    
+                    // Create the data source component
+                    createDataSourceComponent(
+                        cloudType, 
+                        path.split('/').pop() || path, 
+                        columns, 
+                        sampleData
+                    );
+                    
+                    document.body.removeChild(modal);
+                }, 2000);
+            });
+            
+            // Cancel button
+            modal.querySelector('#cancelBtn').addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+        }
+        
+        // Helper function to create modal dialogs
+        function createModal(content) {
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            modal.style.display = 'flex';
+            modal.style.justifyContent = 'center';
+            modal.style.alignItems = 'center';
+            modal.style.zIndex = '2000';
+            
+            const dialog = document.createElement('div');
+            dialog.style.backgroundColor = 'white';
+            dialog.style.padding = '20px';
+            dialog.style.borderRadius = '8px';
+            dialog.style.width = '500px';
+            dialog.style.maxWidth = '90%';
+            dialog.innerHTML = content;
+            
+            modal.appendChild(dialog);
+            document.body.appendChild(modal);
+            
+            return modal;
+        }
+        
+        // Create a new dropped item
+        function createDroppedItem(type, name, icon, color, x, y) {
+            const itemsContainer = document.getElementById('itemsContainer');
+            const propertyPanel = document.getElementById('propertyPanel');
+            
+            // Create the item element
+            const droppedItem = document.createElement('div');
+            droppedItem.className = 'dropped-item real-time-update';
+            droppedItem.setAttribute('data-type', type);
+            
+            // Add actions
+            const actions = document.createElement('div');
+            actions.className = 'dropped-item-actions';
+            
+            const configBtn = document.createElement('div');
+            configBtn.className = 'item-action';
+            configBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            configBtn.title = 'Configure';
+            configBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showItemConfiguration(type, name);
+            });
+            
+            const removeBtn = document.createElement('div');
+            removeBtn.className = 'item-action item-action-danger';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.title = 'Remove';
+            removeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                droppedItem.remove();
+                updateDroppedItems();
+                if (selectedItem === droppedItem) {
+                    selectedItem = null;
+                    propertyPanel.classList.remove('active');
+                }
+                if (currentDataSource === droppedItem) {
+                    currentDataSource = null;
+                }
+            });
+            
+            actions.appendChild(configBtn);
+            actions.appendChild(removeBtn);
+            
+            // Add content
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'source-icon';
+            iconDiv.style.backgroundColor = color;
+            iconDiv.innerHTML = icon;
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'source-name';
+            nameDiv.textContent = name;
+            
+            droppedItem.appendChild(iconDiv);
+            droppedItem.appendChild(nameDiv);
+            droppedItem.appendChild(actions);
+            
+            // Position the item where it was dropped
+            droppedItem.style.left = `${x - 60}px`;
+            droppedItem.style.top = `${y - 50}px`;
+            
+            itemsContainer.appendChild(droppedItem);
+            
+            // Make the dropped item draggable and selectable
+            makeDraggable(droppedItem, name);
+            
+            // Update the items array
+            updateDroppedItems();
+        }
+        
+        // Make an element draggable
+        function makeDraggable(element, name) {
+            const propertyPanel = document.getElementById('propertyPanel');
+            let offsetX, offsetY;
+            
+            element.onmousedown = dragMouseDown;
+            
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                
+                // Select the item
+                if (selectedItem) {
+                    selectedItem.classList.remove('selected');
+                }
+                element.classList.add('selected');
+                selectedItem = element;
+                propertyPanel.classList.add('active');
+                showItemConfiguration(element.getAttribute('data-type'), name, element);
+                
+                // Get the mouse cursor position relative to the element
+                offsetX = e.clientX - element.getBoundingClientRect().left;
+                offsetY = e.clientY - element.getBoundingClientRect().top;
+                
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                
+                // Calculate the new position
+                const rect = document.getElementById('dropArea').getBoundingClientRect();
+                let x = e.clientX - offsetX - rect.left;
+                let y = e.clientY - offsetY - rect.top;
+                
+                // Constrain to drop area
+                x = Math.max(0, Math.min(x, rect.width - element.offsetWidth));
+                y = Math.max(0, Math.min(y, rect.height - element.offsetHeight));
+                
+                // Set the element's new position
+                element.style.left = `${x}px`;
+                element.style.top = `${y}px`;
+                
+                // Update connections while dragging
+                updateConnections();
+            }
+            
+            function closeDragElement() {
+                // Stop moving when mouse button is released
+                document.onmouseup = null;
+                document.onmousemove = null;
+                updateDroppedItems();
+            }
+        }
+        
+        // Update the dropped items array
+        function updateDroppedItems() {
+            droppedItems = Array.from(document.querySelectorAll('.dropped-item')).map(item => {
+                return {
+                    type: item.getAttribute('data-type'),
+                    name: item.querySelector('.source-name').textContent,
+                    x: parseInt(item.style.left),
+                    y: parseInt(item.style.top),
+                    element: item
+                };
+            });
+            
+            // Update connections
+            updateConnections();
+        }
+        
+        // Update connections between items
+        function updateConnections() {
+            // Remove existing connections
+            document.querySelectorAll('.connection-line').forEach(line => line.remove());
+            document.querySelectorAll('.connection-arrow').forEach(arrow => arrow.remove());
+            
+            // Create connections between items
+            for (let i = 0; i < droppedItems.length - 1; i++) {
+                const current = droppedItems[i];
+                const next = droppedItems[i + 1];
+                
+                // Create connection line
+                const line = document.createElement('div');
+                line.className = 'connection-line';
+                
+                const x1 = current.x + 60;
+                const y1 = current.y + 50;
+                const x2 = next.x + 60;
+                const y2 = next.y + 50;
+                
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                
+                line.style.width = `${length}px`;
+                line.style.left = `${x1}px`;
+                line.style.top = `${y1}px`;
+                line.style.transform = `rotate(${angle}deg)`;
+                
+                document.getElementById('itemsContainer').appendChild(line);
+                
+                // Create arrow head
+                const arrow = document.createElement('div');
+                arrow.className = 'connection-arrow';
+                arrow.style.left = `${x2 - 4}px`;
+                arrow.style.top = `${y2 - 4}px`;
+                arrow.style.transform = `rotate(${angle + 45}deg)`;
+                
+                document.getElementById('itemsContainer').appendChild(arrow);
+            }
+        }
+        
+        // Show item configuration
+        function showItemConfiguration(type, name, element) {
+            const propertyPanel = document.getElementById('propertyPanel');
+            const componentName = document.getElementById('componentName');
+            const componentDescription = document.getElementById('componentDescription');
+            const dynamicProperties = document.getElementById('dynamicProperties');
+            
+            // Set basic properties
+            componentName.value = name;
+            componentDescription.value = `Configuration for ${name} (${type})`;
+            
+            // Generate dynamic properties based on type
+            let propertiesHTML = '';
+            
+            switch(type) {
+                case 'excel':
+                case 'csv':
+                case 'json':
+                    const filename = element ? element.dataset.filename : '';
+                    const columns = element ? JSON.parse(element.dataset.columns || '[]') : [];
+                    
+                    propertiesHTML = `
+                        <label class="property-label">File Name</label>
+                        <p style="font-size: 13px; color: var(--gray);">${filename || 'No file selected'}</p>
+                        
+                        <label class="property-label" style="margin-top: 12px;">Columns</label>
+                        <div style="max-height: 150px; overflow-y: auto; background: #f8fafc; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
+                            ${columns.length > 0 ? 
+                                columns.map(col => `<div style="padding: 4px 0;">${col}</div>`).join('') : 
+                                '<p style="font-size: 13px; color: var(--gray);">No columns available</p>'}
+                        </div>
+                        
+                        <button class="button button-secondary" onclick="triggerFileUpload('${type}')" style="width: 100%; margin-top: 8px;">
+                            <i class="fas fa-sync-alt"></i> Replace File
+                        </button>
+                    `;
+                    break;
+                    
+                case 'sqlserver':
+                case 'mysql':
+                case 'postgres':
+                case 'oracle':
+                case 'mongodb':
+                    const dbName = element ? element.dataset.filename.split('.')[0] : '';
+                    const tableName = element ? element.dataset.filename.split('.')[1] : '';
+                    const dbColumns = element ? JSON.parse(element.dataset.columns || '[]') : [];
+                    
+                    propertiesHTML = `
+                        <label class="property-label">Database</label>
+                        <p style="font-size: 13px; color: var(--gray);">${dbName || 'Not connected'}</p>
+                        
+                        <label class="property-label" style="margin-top: 12px;">Table/Collection</label>
+                        <p style="font-size: 13px; color: var(--gray);">${tableName || 'Not specified'}</p>
+                        
+                        <label class="property-label" style="margin-top: 12px;">Columns/Fields</label>
+                        <div style="max-height: 150px; overflow-y: auto; background: #f8fafc; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
+                            ${dbColumns.length > 0 ? 
+                                dbColumns.map(col => `<div style="padding: 4px 0;">${col}</div>`).join('') : 
+                                '<p style="font-size: 13px; color: var(--gray);">No columns available</p>'}
+                        </div>
+                        
+                        <button class="button button-secondary" onclick="showDatabaseConnectionDialog('${type}')" style="width: 100%; margin-top: 8px;">
+                            <i class="fas fa-sync-alt"></i> Reconfigure Connection
+                        </button>
+                    `;
+                    break;
+                    
+                case 'api':
+                    const apiUrl = element ? element.dataset.filename : '';
+                    const apiColumns = element ? JSON.parse(element.dataset.columns || '[]') : [];
+                    
+                    propertiesHTML = `
+                        <label class="property-label">API Endpoint</label>
+                        <p style="font-size: 13px; color: var(--gray);">${apiUrl || 'Not connected'}</p>
+                        
+                        <label class="property-label" style="margin-top: 12px;">Fields</label>
+                        <div style="max-height: 150px; overflow-y: auto; background: #f8fafc; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
+                            ${apiColumns.length > 0 ? 
+                                apiColumns.map(col => `<div style="padding: 4px 0;">${col}</div>`).join('') : 
+                                '<p style="font-size: 13px; color: var(--gray);">No fields available</p>'}
+                        </div>
+                        
+                        <button class="button button-secondary" onclick="showApiConnectionDialog()" style="width: 100%; margin-top: 8px;">
+                            <i class="fas fa-sync-alt"></i> Reconfigure Connection
+                        </button>
+                    `;
+                    break;
+                    
+                case 'web':
+                    const siteUrl = element ? element.dataset.filename : '';
+                    const scrapedColumns = element ? JSON.parse(element.dataset.columns || '[]') : [];
+                    
+                    propertiesHTML = `
+                        <label class="property-label">Website URL</label>
+                        <p style="font-size: 13px; color: var(--gray);">${siteUrl || 'Not configured'}</p>
+                        
+                        <label class="property-label" style="margin-top: 12px;">Scraped Fields</label>
+                        <div style="max-height: 150px; overflow-y: auto; background: #f8fafc; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
+                            ${scrapedColumns.length > 0 ? 
+                                scrapedColumns.map(col => `<div style="padding: 4px 0;">${col}</div>`).join('') : 
+                                '<p style="font-size: 13px; color: var(--gray);">No fields available</p>'}
+                        </div>
+                        
+                        <button class="button button-secondary" onclick="showWebScrapingDialog()" style="width: 100%; margin-top: 8px;">
+                            <i class="fas fa-sync-alt"></i> Reconfigure Scraping
+                        </button>
+                    `;
+                    break;
+                    
+                case 'sharepoint':
+                case 'blob':
+                case 's3':
+                case 'google':
+                case 'sftp':
+                    const cloudPath = element ? element.dataset.filename : '';
+                    const cloudColumns = element ? JSON.parse(element.dataset.columns || '[]') : [];
+                    
+                    propertiesHTML = `
+                        <label class="property-label">Path/Container</label>
+                        <p style="font-size: 13px; color: var(--gray);">${cloudPath || 'Not connected'}</p>
+                        
+                        <label class="property-label" style="margin-top: 12px;">File Details</label>
+                        <div style="max-height: 150px; overflow-y: auto; background: #f8fafc; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
+                            ${cloudColumns.length > 0 ? 
+                                cloudColumns.map(col => `<div style="padding: 4px 0;">${col}</div>`).join('') : 
+                                '<p style="font-size: 13px; color: var(--gray);">No details available</p>'}
+                        </div>
+                        
+                        <button class="button button-secondary" onclick="showCloudConnectionDialog('${type}')" style="width: 100%; margin-top: 8px;">
+                            <i class="fas fa-sync-alt"></i> Reconfigure Connection
+                        </button>
+                    `;
+                    break;
+                    
+                case 'filter':
+                    propertiesHTML = `
+                        <label class="property-label">Filter Condition</label>
+                        <select class="property-control">
+                            <option>Equals</option>
+                            <option>Not Equals</option>
+                            <option>Greater Than</option>
+                            <option>Less Than</option>
+                            <option>Contains</option>
+                        </select>
+                        <label class="property-label" style="margin-top: 12px;">Column</label>
+                        <select class="property-control">
+                            <option>ID</option>
+                            <option>Name</option>
+                            <option>Value</option>
+                            <option>Date</option>
+                        </select>
+                        <label class="property-label" style="margin-top: 12px;">Value</label>
+                        <input type="text" class="property-control" placeholder="Enter filter value">
+                    `;
+                    break;
+                    
+                case 'sort':
+                    propertiesHTML = `
+                        <label class="property-label">Sort Order</label>
+                        <select class="property-control">
+                            <option>Ascending</option>
+                            <option>Descending</option>
+                        </select>
+                        <label class="property-label" style="margin-top: 12px;">Column</label>
+                        <select class="property-control">
+                            <option>ID</option>
+                            <option>Name</option>
+                            <option>Value</option>
+                            <option>Date</option>
+                        </select>
+                    `;
+                    break;
+                    
+                case 'join':
+                    propertiesHTML = `
+                        <label class="property-label">Join Type</label>
+                        <select class="property-control">
+                            <option>Inner Join</option>
+                            <option>Left Join</option>
+                            <option>Right Join</option>
+                            <option>Full Outer Join</option>
+                        </select>
+                        <label class="property-label" style="margin-top: 12px;">Left Column</label>
+                        <select class="property-control">
+                            <option>ID</option>
+                            <option>Name</option>
+                            <option>Value</option>
+                            <option>Date</option>
+                        </select>
+                        <label class="property-label" style="margin-top: 12px;">Right Column</label>
+                        <select class="property-control">
+                            <option>ID</option>
+                            <option>Name</option>
+                            <option>Value</option>
+                            <option>Date</option>
+                        </select>
+                    `;
+                    break;
+                    
+                default:
+                    propertiesHTML = `
+                        <label class="property-label">Configuration</label>
+                        <p style="font-size: 13px; color: var(--gray);">No additional configuration required for this component.</p>
+                    `;
+            }
+            
+            dynamicProperties.innerHTML = propertiesHTML;
+            
+            // Add event listeners to property controls
+            document.querySelectorAll('.property-control').forEach(control => {
+                control.addEventListener('change', function() {
+                    if (element) {
+                        element.querySelector('.source-name').textContent = componentName.value;
+                        updateDroppedItems();
+                        showNotification('Component updated', `${name} configuration saved`, 'info');
+                    }
+                });
+            });
+        }
+        
+        // Validate the workflow
+        function validateWorkflow() {
+            if (droppedItems.length === 0) {
+                showNotification('Validation Failed', 'Please add at least one component to the workflow', 'error');
+                return;
+            }
+            
+            // Simulate validation
+            const isValid = Math.random() > 0.2;
+            
+            if (isValid) {
+                showNotification('Validation Passed', 'Workflow is valid and ready to run', 'success');
+            } else {
+                showNotification('Validation Failed', 'Workflow contains errors. Please check your configuration.', 'error');
+            }
+        }
+        
+        // Save the workflow
+        function saveWorkflow() {
+            if (droppedItems.length === 0) {
+                showNotification('Save Failed', 'Cannot save an empty workflow', 'error');
+                return;
+            }
+            
+            // Prompt for workflow name
+            const newName = prompt('Enter workflow name:', workflowName);
+            if (newName) {
+                workflowName = newName;
+                document.getElementById('sectionTitle').textContent = newName;
+                showNotification('Workflow Saved', `${newName} has been saved successfully`, 'success');
+            }
+        }
+        
+        // Run the ETL process
+        function runETLProcess() {
+            const runButton = document.getElementById('runButton');
+            const executionStatus = document.getElementById('executionStatus');
+            const executionDuration = document.getElementById('executionDuration');
+            const executionErrors = document.getElementById('executionErrors');
+            const executionTime = document.getElementById('executionTime');
+            
+            if (droppedItems.length === 0) {
+                showNotification('Execution Failed', 'Please add at least one component to the workflow', 'error');
+                return;
+            }
+            
+            if (isRunning) return;
+            isRunning = true;
+            
+            // Update UI for running state
+            runButton.innerHTML = '<i class="fas fa-spinner spin"></i> Running...';
+            executionStatus.textContent = 'Running';
+            executionDuration.textContent = '-';
+            executionErrors.textContent = '0';
+            executionTime.textContent = '';
+            
+            // Show running notification
+            showNotification('ETL Started', 'Processing your workflow...', 'info');
+            
+            // Simulate ETL process with progress updates
+            let progress = 0;
+            const totalSteps = 5;
+            const progressInterval = setInterval(() => {
+                progress++;
+                
+                // Update execution stats
+                executionDuration.textContent = `${progress * 2}s`;
+                
+                // Randomly generate some errors
+                if (progress === 3 && Math.random() > 0.7) {
+                    executionErrors.textContent = '1';
+                }
+                
+                if (progress >= totalSteps) {
+                    clearInterval(progressInterval);
+                    finishETLProcess();
+                }
+            }, 2000);
+        }
+        
+        // Finish the ETL process
+        function finishETLProcess() {
+            const runButton = document.getElementById('runButton');
+            const executionStatus = document.getElementById('executionStatus');
+            const executionDuration = document.getElementById('executionDuration');
+            const executionTime = document.getElementById('executionTime');
+            
+            isRunning = false;
+            
+            // Randomly determine success or failure (80% success rate)
+            const isSuccess = Math.random() > 0.2;
+            const now = new Date();
+            
+            if (isSuccess) {
+                executionStatus.textContent = 'Completed';
+                executionTime.textContent = now.toLocaleTimeString();
+                runButton.innerHTML = '<i class="fas fa-play"></i> Run ETL';
+                
+                // Generate sample results
+                const rowCount = Math.floor(Math.random() * 10000) + 1000;
+                showNotification('ETL Completed', `Processed ${rowCount.toLocaleString()} rows successfully`, 'success');
+            } else {
+                executionStatus.textContent = 'Failed';
+                executionTime.textContent = now.toLocaleTimeString();
+                runButton.innerHTML = '<i class="fas fa-play"></i> Run ETL';
+                showNotification('ETL Failed', 'Connection timeout during execution', 'error');
+            }
+        }
+        
+        // Update execution stats
+        function updateExecutionStats() {
+            const executionTime = document.getElementById('executionTime');
+            const now = new Date();
+            executionTime.textContent = `Last run: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
+        }
+        
+        // Show notification
+        function showNotification(title, message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            
+            const iconClass = {
+                'success': 'check-circle',
+                'error': 'exclamation-circle',
+                'warning': 'exclamation-triangle',
+                'info': 'info-circle'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-icon notification-icon-${type}">
+                    <i class="fas fa-${iconClass[type]}"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+                <div class="notification-close">
+                    <i class="fas fa-times"></i>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Close button
+            notification.querySelector('.notification-close').addEventListener('click', function() {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            });
+            
+            // Auto-remove after delay
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }
+            }, 5000);
+        }
+        
+        // Simulate real-time updates
+        function simulateRealTimeUpdates() {
+            // Simulate occasional status checks
+            setInterval(() => {
+                const statusIndicator = document.querySelector('.status-indicator');
+                if (!isRunning && Math.random() > 0.9) {
+                    statusIndicator.innerHTML = `
+                        <div class="status-dot status-processing"></div>
+                        <span>Syncing...</span>
+                    `;
+                    
+                    setTimeout(() => {
+                        statusIndicator.innerHTML = `
+                            <div class="status-dot status-success"></div>
+                            <span>Connected</span>
+                        `;
+                    }, 2000);
+                }
+            }, 15000);
+        }
+    </script>
+</body>
+</html>
